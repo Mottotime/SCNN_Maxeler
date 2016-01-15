@@ -1,6 +1,19 @@
 # Ingnore everything
-*
+# *
+RunRules/*
+CPUCode/*
+.*
+
 # But these
 !.gitignore
 !CPUCode/*.c
-!EngineCode/*.maxj
+
+EngineCode/*
+!EngineCode/src/
+EngineCode/src/*
+!EngineCode/src/cmdstream/
+EngineCode/src/cmdstream/*
+!EngineCode/src/cmdstream/*.maxj
+
+#EngineCode/**/*
+#!EngineCode/**/*.maxj

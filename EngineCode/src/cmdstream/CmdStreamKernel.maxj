@@ -1,0 +1,54 @@
+/**
+ * Document: Manager Compiler Tutorial (maxcompiler-manager-tutorial.pdf)
+ * Chapter: 2      Example: 3      Name: Command Stream
+ * MaxFile name: CmdStream
+ * Summary:
+ *     Computes the sum of the two input streams and sends it to an output
+ *     stream. Also generates the three custom memory command streams needed to
+ *     control the LMem connected to these streams.
+ */
+package cmdstream;
+
+import com.maxeler.maxcompiler.v2.kernelcompiler.Kernel;
+import com.maxeler.maxcompiler.v2.kernelcompiler.KernelParameters;
+import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.LMemCommandStream;
+import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.core.CounterChain;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEVar;
+
+class CmdStreamKernel extends Kernel {
+
+	CmdStreamKernel(KernelParameters parameters) {
+		super(parameters);
+		DFEVar inB = io.input("inB", dfeUInt(32));
+		DFEVar inA = io.input("inA", dfeUInt(32));
+		DFEVar totalBursts = io.scalarInput("totalBursts",dfeUInt(32));
+		DFEVar wordsPerBurst = io.scalarInput("wordsPerBurst",dfeUInt(32));
+
+		CounterChain chain = control.count.makeCounterChain();
+		DFEVar burstCount = chain.addCounter(totalBursts,1);
+		DFEVar wordCount = chain.addCounter(wordsPerBurst,1);
+		LMemCommandStream.makeKernelOutput("AcmdStream",
+				wordCount === 0,                 // control
+				burstCount,                      // address
+				constant.var(dfeUInt(8), 1),      // size
+				constant.var(dfeUInt(1), 0),      // inc
+				constant.var(dfeUInt(1), 0),      // stream
+				constant.var(false));
+		LMemCommandStream.makeKernelOutput("BcmdStream",
+				wordCount === 0,                 // control
+				totalBursts + burstCount,        // address
+				constant.var(dfeUInt(8), 1),      // size
+				constant.var(dfeUInt(1), 0),      // inc
+				constant.var(dfeUInt(1), 0),      // stream
+				constant.var(false));
+		LMemCommandStream.makeKernelOutput("OcmdStream",
+				wordCount === 0,                  // control
+				totalBursts * 2 + burstCount,     // address
+				constant.var(dfeUInt(8), 1),       // size
+				constant.var(dfeUInt(1), 0),       // inc
+				constant.var(dfeUInt(1), 0),       // stream
+				burstCount === (totalBursts - 1));
+
+		io.output("oData", inA+inB, dfeUInt(32));
+	}
+}
