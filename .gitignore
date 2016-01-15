@@ -1,7 +1,6 @@
+# Ingnore everything
+*
 # But these
 !.gitignore
 !CPUCode/*.c
 !EngineCode/*.maxj
-# Ingnore everything
-*
-# Pay attention to the order
