@@ -14,7 +14,9 @@ import com.maxeler.maxcompiler.v2.managers.engine_interfaces.InterfaceParam;
 class CmdStreamManager extends CustomManager {
 
 	private static final String KERNEL_NAME = "CmdStreamKernel";
-	private static final CPUTypes TYPE = CPUTypes.INT32;
+	private static final CPUTypes TYPE = CPUTypes.UINT32;
+	private static final CPUTypes CPUInt = CPUTypes.UINT32;
+	private static final CPUTypes CPUFloat = CPUTypes.DOUBLE;
 
 	private static int vectorSize = 192; //96; // 384/4
 	private static int maxNeuronNum = 49152; // max neuron number under the limitation of the branch number
@@ -33,19 +35,25 @@ class CmdStreamManager extends CustomManager {
 		tolmem <== fromcpu;
 		tocpu <== fromlmem;
 
+		DFELink spikeInput = addStreamFromCPU("spikeInput");
+		k.getInput("spikeInput") <== spikeInput;
+
+		DFELink spikeOutput = addStreamToCPU("spikeOutput");
+		spikeOutput <== k.getOutput("spikeOutput");
+
 		//DFELink inB = addStreamFromOnCardMemory("inB",k.getOutput("BcmdStream"));
 		//k.getInput("inB") <== inB;
 
-		DFELink inA = addStreamFromOnCardMemory("inA",k.getOutput("AcmdStream"));
-		k.getInput("inA") <== inA;
+		//DFELink inA = addStreamFromOnCardMemory("inA",k.getOutput("AcmdStream"));
+		//k.getInput("inA") <== inA;
 
 		//DFELink inB = addStreamFromCPU("inB");
 		//k.getInput("inB") <== inB;
 
 		//DFELink oData = addStreamToOnCardMemory("oData",k.getOutput("OcmdStream"));
 		//oData <== k.getOutput("oData");
-		DFELink oData = addStreamToCPU("outData");
-		oData <== k.getOutput("oData");
+		//DFELink oData = addStreamToCPU("outData");
+		//oData <== k.getOutput("oData");
 	}
 
 	private static EngineInterface interfaceWrite(String name) {
@@ -78,14 +86,27 @@ class CmdStreamManager extends CustomManager {
 	private static EngineInterface interfaceDefault() {
 		EngineInterface ei = new EngineInterface();
 
-		InterfaceParam N = ei.addParam("N", TYPE);
+		InterfaceParam imageNum = ei.addParam("imageNum", CPUInt, "Total amount of input image.");
+		InterfaceParam classNum = ei.addParam("classNum", CPUInt, "Number of output classes.");
+		InterfaceParam imageSize = ei.addParam("imageSize", CPUInt, "Image size in pixels.");
+
+		InterfaceParam neuronNum = ei.addParam("neuronNum", CPUInt, "Total amount of neurons.");
+
+		ei.setScalar(KERNEL_NAME, "neuronNum", neuronNum);
+		ei.setScalar(KERNEL_NAME, "imageSize", imageSize);
+		ei.setScalar(KERNEL_NAME, "classNum", classNum);
+
+		ei.setStream("spikeInput", CPUFloat, imageNum * imageSize * CPUFloat.sizeInBytes());
+		ei.setStream("spikeOutput", CPUInt, imageNum * classNum * CPUInt.sizeInBytes());
+
+		//InterfaceParam N = ei.addParam("N", TYPE);
 		//InterfaceParam burstSize = ei.addParam("burstSize", TYPE);
 
 		//InterfaceParam row_num = ei.addParam("row_num", TYPE); // to get the output address
 		//ei.setStream("inB", CPUTypes.UINT32, N * CPUTypes.UINT32.sizeInBytes()); // address stream
-		ei.setStream("outData", CPUTypes.INT32, N * CPUTypes.INT32.sizeInBytes());
+		//ei.setStream("outData", CPUTypes.INT32, N * CPUTypes.INT32.sizeInBytes());
 
-		ei.setTicks(KERNEL_NAME, N);
+		//ei.setTicks(KERNEL_NAME, N);
 
 		//ei.setScalar(KERNEL_NAME, "totalBursts", (N*(TYPE.sizeInBytes()))/burstSize);
 		//ei.setScalar(KERNEL_NAME, "wordsPerBurst", burstSize/(TYPE.sizeInBytes()));
@@ -94,6 +115,8 @@ class CmdStreamManager extends CustomManager {
 		//ei.setScalar(KERNEL_NAME, "N", N);
 
 		//ei.setLMemInterruptOn("oData");
+
+
 		ei.ignoreAll(Direction.IN_OUT);
 		return ei;
 	}

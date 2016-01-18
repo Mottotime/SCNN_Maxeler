@@ -143,6 +143,7 @@ int main()
     int image, t, i;
 
     FILE * pFile;
+    long lSize;
 
     printf("Begin reading spiking image.\n");
     Read_weight("/home/chuyang/Run1/imdb_test_x_100_new.bin",\
@@ -162,7 +163,29 @@ int main()
 
     printf("Begin simulation.\n");
 
-    CPUSim(image_num * time_step * map_width * map_width, input_x, output_spike_CPU);
+    //CPUSim(image_num * time_step * map_width * map_width, input_x, output_spike_CPU);
+
+    printf("Begin reading cusomized table.\n");
+    pFile = fopen("/home/chuyang/Run1/customized_table.bin", "rb");
+    if (pFile==NULL) {fputs ("File error",stderr); exit (1);}
+    fseek (pFile , 0 , SEEK_END);
+	lSize = ftell (pFile);
+	rewind (pFile);
+	if (lSize != dfe_table_size * 2) {fputs ("Size error",stderr); printf("Actual size %ld; Expected size %d.\n", lSize, expect_size); exit (3);}
+	result = fread (customized_table, 1, lSize, pFile);
+	fclose (pFile);
+    printf("Finish reading cusomized table.\n");
+
+    max_file_t *myMaxFile = CmdStream_init();
+    max_engine_t *myDFE = max_load(myMaxFile, "*");
+
+    CmdStream_actions_t myActions;
+    myActions.instream_spikeInput = input_x;
+    myActions.instream_spikeOutput = output_spike_DFE;
+    myActions.param_imageNum = image_num;
+    myActions.param_imageSize = map_width * map_width;
+    myActions.param_neuronNum = total_neuron;
+
 
 /*
 	//const int vectorSize = CmdStream_vectorSize; // Why we can not set this?

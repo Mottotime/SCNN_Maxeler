@@ -50,8 +50,11 @@ public void push(DFEVar enable, DFEVar dataIn)
     pushEnable <== enable;
 }
 
-public DFEVar pop(DFEVar enable)
+public DFEVar pop(DFEVar enable_request)
 {
+	//DFEVar enable = enable1 & (numElements > 0); // Require that numElement become 1 and then 0 in the same cycle.
+    DFEVar enable = enable_request & (stream.offset(numElements, -1) > 0); // This will add a cycle latency, but if we use numElements directly, there will be an loop.
+
     Params params = control.count.makeParams( MathUtils.bitsToAddress(bufferSize) )
                     .withMax( bufferSize )
                     .withEnable( enable )
